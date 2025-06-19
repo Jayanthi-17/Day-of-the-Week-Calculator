@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Almanac-style Day Calculator</title>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    document.getElementById('app').innerHTML = `
+      <style>
+        body {
+          font-family: 'Georgia', serif;
+          background-color: #f9f5e8;
+          color: #333;
+          line-height: 1.6;
+          padding: 0;
+          margin: 0;
+        }
+        .tool-container {
+          max-width: 800px;
+          margin: 20px auto;
+          padding: 25px;
+          background: white;
+          border-radius: 5px;
+          box-shadow: 0 0 15px rgba(0,0,0,0.1);
+          border-top: 5px solid #ad2a24;
+        }
+        h1 {
+          color: #ad2a24;
+          text-align: center;
+          font-size: 28px;
+          margin-bottom: 25px;
+          font-weight: normal;
+          border-bottom: 1px solid #eee;
+          padding-bottom: 10px;
+        }
+        select, button {
+          padding: 8px 12px;
+          margin: 5px;
+          font-size: 16px;
+          font-family: 'Georgia', serif;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+        }
+        button {
+          background-color: #ad2a24;
+          color: white;
+          border: none;
+          cursor: pointer;
+          transition: background-color 0.3s;
+        }
+        button:hover {
+          background-color: #8a221d;
+        }
+        #output {
+          margin-top: 25px;
+          padding: 20px;
+          background: #f9f5e8;
+          border-left: 4px solid #ad2a24;
+        }
+        table {
+          border-collapse: collapse;
+          width: 100%;
+          margin: 20px 0;
+        }
+        th, td {
+          padding: 8px;
+          text-align: center;
+          border: 1px solid #ddd;
+        }
+        th {
+          background-color: #f2f2f2;
+        }
+        .highlight {
+          background-color: #ad2a24;
+          color: white;
+          font-weight: bold;
+        }
+        .special-day {
+          color: #ad2a24;
+          font-weight: bold;
+        }
+        .fact-item {
+          margin-bottom: 10px;
+          padding-left: 15px;
+          border-left: 3px solid #ad2a24;
+        }
+        .trivia {
+          margin-top: 20px;
+          padding: 15px;
+          background: #f0e6d2;
+          border-radius: 5px;
+        }
+        .trivia h3 {
+          color: #ad2a24;
+          margin-top: 0;
+          border-bottom: 1px dashed #ad2a24;
+          padding-bottom: 5px;
+        }
+      </style>
+
+      <div class="tool-container">
+        <h1>Almanac Day Calculator</h1>
+
+        <label for="month">Month:</label>
+        <select id="month"></select>
+
+        <label for="day">Day:</label>
+        <select id="day"></select>
+
+        <label for="year">Year:</label>
+        <select id="year"></select>
+
+        <br><br>
+        <button onclick="calculate()">Calculate</button>
+        <button onclick="resetTool()">Reset</button>
+
+        <div id="output"></div>
+      </div>
+    `;
+
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    const calendarTrivia = [
+      "The Gregorian calendar we use today was introduced in 1582 to correct drift in the Julian calendar.",
+      "September, October, November, and December were originally the 7th, 8th, 9th, and 10th months (hence their names).",
+      "February is the only month that can pass without a full moon.",
+      "If you're born on February 29th, you're called a 'leapling' or 'leaper'.",
+      "The calendar we use today would need to be adjusted by one day in about 3,300 years.",
+      "July and August both have 31 days because Emperor Augustus didn't want July (named after Julius Caesar) to be longer.",
+      "In 1752, 11 days were skipped when Britain switched to the Gregorian calendar.",
+      "The year 1900 wasn't a leap year, but 2000 was - that's the Gregorian calendar rule.",
+      "Friday the 13th occurs at least once every year, but can happen up to three times in one year.",
+      "The shortest month name is May (3 letters), the longest is September (9 letters).",
+      "No month ever begins on the same day of the week as May.",
+      "October 1582 is the shortest month ever - it had only 21 days due to the calendar switch."
+    ];
+
+    const daysInMonth = (month, year) => {
+      return new Date(year, month + 1, 0).getDate();
+    };
+
+    const isLeapYear = (year) => {
+      return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    };
+
+    const getNextLeapYear = (currentYear) => {
+      let year = currentYear + 1;
+      while (true) {
+        if (isLeapYear(year)) return year;
+        year++;
+      }
+    };
+
+    const getPreviousLeapYear = (currentYear) => {
+      let year = currentYear - 1;
+      while (true) {
+        if (isLeapYear(year)) return year;
+        year--;
+      }
+    };
+
+    const getFridaysThe13thInYear = (year) => {
+      const fridays = [];
+      for (let month = 0; month < 12; month++) {
+        const date = new Date(year, month, 13);
+        if (date.getDay() === 5) { // 5 is Friday
+          fridays.push(monthNames[month]);
+        }
+      }
+      return fridays;
+    };
+
+    const getRandomTrivia = () => {
+      const randomIndex = Math.floor(Math.random() * calendarTrivia.length);
+      return calendarTrivia[randomIndex];
+    };
+
+    const populateDropdowns = () => {
+      const monthSelect = document.getElementById("month");
+      const daySelect = document.getElementById("day");
+      const yearSelect = document.getElementById("year");
+
+      // Months
+      monthSelect.innerHTML = monthNames.map((m, i) => `<option value="${i}">${m}</option>`).join("");
+
+      // Days
+      for (let d = 1; d <= 31; d++) {
+        daySelect.innerHTML += `<option value="${d}">${d}</option>`;
+      }
+
+      // Years
+      for (let y = 1900; y <= 2100; y++) {
+        yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+      }
+
+      // Default to today's date
+      const today = new Date();
+      monthSelect.value = today.getMonth();
+      daySelect.value = today.getDate();
+      yearSelect.value = today.getFullYear();
+    };
+
+    const calculate = () => {
+      const month = parseInt(document.getElementById("month").value);
+      const day = parseInt(document.getElementById("day").value);
+      const year = parseInt(document.getElementById("year").value);
+      const date = new Date(year, month, day);
+
+      if (isNaN(date.getTime())) {
+        document.getElementById("output").innerHTML = "<p style='color:#ad2a24'>Invalid date selected.</p>";
+        return;
+      }
+
+      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+      const fullDate = `${monthNames[month]} ${day}, ${year}`;
+      const start = new Date(year, 0, 1);
+      const dayNum = Math.floor((date - start) / (1000 * 60 * 60 * 24)) + 1;
+      const totalDaysInYear = isLeapYear(year) ? 366 : 365;
+      const remainingDays = totalDaysInYear - dayNum;
+
+      // Friday the 13th check
+      const isFridayThe13th = day === 13 && date.getDay() === 5;
+      const fridayThe13thInfo = isFridayThe13th 
+        ? `<div class="special-day">This is Friday the 13th! Considered unlucky in many cultures.</div>`
+        : '';
+
+      // Leap year info
+      let leapYearInfo = '';
+      if (month === 1 && day === 29) { // February 29
+        const prevLeap = getPreviousLeapYear(year);
+        const nextLeap = getNextLeapYear(year);
+        leapYearInfo = `
+          <div class="special-day">
+            This is Leap Day! The previous Leap Day was in ${prevLeap}. 
+            The next Leap Day will be in ${nextLeap}.
+          </div>
+        `;
+      } else {
+        leapYearInfo = isLeapYear(year) 
+          ? `<div class="fact-item">${year} is a leap year.</div>`
+          : `<div class="fact-item">${year} is not a leap year.</div>`;
+      }
+
+      // Week counts
+      const weekdayInMonth = Math.floor((day - 1) / 7) + 1;
+
+      const facts = `
+        <h2>${fullDate}</h2>
+        <div style="font-size: 1.2em; margin-bottom: 15px;">It's a <strong>${dayOfWeek}</strong></div>
+        
+        ${fridayThe13thInfo}
+        ${leapYearInfo}
+        <div class="fact-item">Day #${dayNum} of ${totalDaysInYear} (${remainingDays} days remaining)</div>
+        <div class="fact-item">${dayOfWeek} number ${weekdayInMonth} in ${monthNames[month]}</div>
+        <div class="fact-item">${monthNames[month]} has ${daysInMonth(month, year)} days</div>
+        
+        ${generateCalendar(month, year, day)}
+        
+        <div class="trivia">
+          <h3>Did You Know?</h3>
+          <p>${getRandomTrivia()}</p>
+          <p>${getRandomTrivia()}</p>
+        </div>
+      `;
+
+      document.getElementById("output").innerHTML = facts;
+    };
+
+    const resetTool = () => {
+      populateDropdowns();
+      document.getElementById("output").innerHTML = "";
+    };
+
+    const generateCalendar = (month, year, selectedDay) => {
+      const firstDay = new Date(year, month, 1).getDay();
+      const numDays = daysInMonth(month, year);
+      let calendar = "<h3>Calendar View</h3><table><tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr><tr>";
+
+      for (let i = 0; i < firstDay; i++) calendar += "<td></td>";
+
+      for (let d = 1; d <= numDays; d++) {
+        const currentDate = new Date(year, month, d);
+        const isSelected = d === selectedDay ? "class='highlight'" : "";
+        const isFriday13th = d === 13 && currentDate.getDay() === 5 ? "style='color:#ad2a24;font-weight:bold'" : "";
+        calendar += `<td ${isSelected} ${isFriday13th}>${d}</td>`;
+        if (currentDate.getDay() === 6) calendar += "</tr><tr>";
+      }
+
+      calendar += "</tr></table>";
+      return calendar;
+    };
+
+    // Initialize on load
+    window.onload = populateDropdowns;
+  </script>
+</body>
+</html>
