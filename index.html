@@ -36,7 +36,7 @@
           border-bottom: 1px solid #eee;
           padding-bottom: 10px;
         }
-        select, button {
+        select, input, button {
           padding: 8px 12px;
           margin: 5px;
           font-size: 16px;
@@ -83,21 +83,20 @@
           font-weight: bold;
         }
         .fact-item {
-          margin-bottom: 10px;
-          padding-left: 15px;
-          border-left: 3px solid #ad2a24;
-        }
-        .trivia {
-          margin-top: 20px;
-          padding: 15px;
-          background: #f0e6d2;
-          border-radius: 5px;
-        }
-        .trivia h3 {
+          margin-bottom: 15px;
           color: #ad2a24;
-          margin-top: 0;
-          border-bottom: 1px dashed #ad2a24;
-          padding-bottom: 5px;
+          font-size: 18px;
+          list-style-type: disc;
+          list-style-position: inside;
+        }
+        .error-message {
+          color: #ad2a24;
+          font-weight: bold;
+          margin-top: 10px;
+        }
+        .facts-list {
+          padding-left: 20px;
+          margin: 20px 0;
         }
       </style>
 
@@ -108,10 +107,10 @@
         <select id="month"></select>
 
         <label for="day">Day:</label>
-        <select id="day"></select>
+        <input type="number" id="day" min="1" max="31" placeholder="Day">
 
         <label for="year">Year:</label>
-        <select id="year"></select>
+        <input type="number" id="year" placeholder="Year">
 
         <br><br>
         <button onclick="calculate()">Calculate</button>
@@ -124,21 +123,6 @@
     const monthNames = [
       "January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"
-    ];
-
-    const calendarTrivia = [
-      "The Gregorian calendar we use today was introduced in 1582 to correct drift in the Julian calendar.",
-      "September, October, November, and December were originally the 7th, 8th, 9th, and 10th months (hence their names).",
-      "February is the only month that can pass without a full moon.",
-      "If you're born on February 29th, you're called a 'leapling' or 'leaper'.",
-      "The calendar we use today would need to be adjusted by one day in about 3,300 years.",
-      "July and August both have 31 days because Emperor Augustus didn't want July (named after Julius Caesar) to be longer.",
-      "In 1752, 11 days were skipped when Britain switched to the Gregorian calendar.",
-      "The year 1900 wasn't a leap year, but 2000 was - that's the Gregorian calendar rule.",
-      "Friday the 13th occurs at least once every year, but can happen up to three times in one year.",
-      "The shortest month name is May (3 letters), the longest is September (9 letters).",
-      "No month ever begins on the same day of the week as May.",
-      "October 1582 is the shortest month ever - it had only 21 days due to the calendar switch."
     ];
 
     const daysInMonth = (month, year) => {
@@ -176,44 +160,56 @@
       return fridays;
     };
 
-    const getRandomTrivia = () => {
-      const randomIndex = Math.floor(Math.random() * calendarTrivia.length);
-      return calendarTrivia[randomIndex];
-    };
-
     const populateDropdowns = () => {
       const monthSelect = document.getElementById("month");
-      const daySelect = document.getElementById("day");
-      const yearSelect = document.getElementById("year");
-
+      
       // Months
       monthSelect.innerHTML = monthNames.map((m, i) => `<option value="${i}">${m}</option>`).join("");
-
-      // Days
-      for (let d = 1; d <= 31; d++) {
-        daySelect.innerHTML += `<option value="${d}">${d}</option>`;
-      }
-
-      // Years
-      for (let y = 1900; y <= 2100; y++) {
-        yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
-      }
 
       // Default to today's date
       const today = new Date();
       monthSelect.value = today.getMonth();
-      daySelect.value = today.getDate();
-      yearSelect.value = today.getFullYear();
+      document.getElementById("day").value = today.getDate();
+      document.getElementById("year").value = today.getFullYear();
+    };
+
+    const validateDate = (month, day, year) => {
+      // Basic validation
+      if (isNaN(month) || isNaN(day) || isNaN(year)) {
+        return false;
+      }
+      
+      // Check if day is valid for the month
+      const maxDays = daysInMonth(month, year);
+      if (day < 1 || day > maxDays) {
+        return false;
+      }
+      
+      // Additional year validation if needed
+      if (year < 1000 || year > 9999) {
+        return false;
+      }
+      
+      return true;
     };
 
     const calculate = () => {
       const month = parseInt(document.getElementById("month").value);
       const day = parseInt(document.getElementById("day").value);
       const year = parseInt(document.getElementById("year").value);
+      
+      // Validate the date
+      if (!validateDate(month, day, year)) {
+        document.getElementById("output").innerHTML = `
+          <div class="error-message">Invalid date selected. Please check the day is valid for the selected month.</div>
+        `;
+        return;
+      }
+      
       const date = new Date(year, month, day);
 
       if (isNaN(date.getTime())) {
-        document.getElementById("output").innerHTML = "<p style='color:#ad2a24'>Invalid date selected.</p>";
+        document.getElementById("output").innerHTML = "<div class='error-message'>Invalid date selected.</div>";
         return;
       }
 
@@ -223,6 +219,7 @@
       const dayNum = Math.floor((date - start) / (1000 * 60 * 60 * 24)) + 1;
       const totalDaysInYear = isLeapYear(year) ? 366 : 365;
       const remainingDays = totalDaysInYear - dayNum;
+      const weekdayInMonth = Math.floor((day - 1) / 7) + 1;
 
       // Friday the 13th check
       const isFridayThe13th = day === 13 && date.getDay() === 5;
@@ -241,14 +238,7 @@
             The next Leap Day will be in ${nextLeap}.
           </div>
         `;
-      } else {
-        leapYearInfo = isLeapYear(year) 
-          ? `<div class="fact-item">${year} is a leap year.</div>`
-          : `<div class="fact-item">${year} is not a leap year.</div>`;
       }
-
-      // Week counts
-      const weekdayInMonth = Math.floor((day - 1) / 7) + 1;
 
       const facts = `
         <h2>${fullDate}</h2>
@@ -256,24 +246,32 @@
         
         ${fridayThe13thInfo}
         ${leapYearInfo}
-        <div class="fact-item">Day #${dayNum} of ${totalDaysInYear} (${remainingDays} days remaining)</div>
-        <div class="fact-item">${dayOfWeek} number ${weekdayInMonth} in ${monthNames[month]}</div>
-        <div class="fact-item">${monthNames[month]} has ${daysInMonth(month, year)} days</div>
+        
+        <div class="facts-list">
+          <div class="fact-item">• It is the ${weekdayInMonth}${getOrdinalSuffix(weekdayInMonth)} ${dayOfWeek} of ${monthNames[month]}.</div>
+          <div class="fact-item">• It is day #${dayNum} of ${totalDaysInYear} (${remainingDays} days remaining).</div>
+          <div class="fact-item">• ${monthNames[month]} has ${daysInMonth(month, year)} days.</div>
+          <div class="fact-item">• ${year} is ${isLeapYear(year) ? '' : 'not '}a leap year.</div>
+        </div>
         
         ${generateCalendar(month, year, day)}
-        
-        <div class="trivia">
-          <h3>Did You Know?</h3>
-          <p>${getRandomTrivia()}</p>
-          <p>${getRandomTrivia()}</p>
-        </div>
       `;
 
       document.getElementById("output").innerHTML = facts;
     };
 
+    const getOrdinalSuffix = (num) => {
+      const j = num % 10, k = num % 100;
+      if (j === 1 && k !== 11) return 'st';
+      if (j === 2 && k !== 12) return 'nd';
+      if (j === 3 && k !== 13) return 'rd';
+      return 'th';
+    };
+
     const resetTool = () => {
       populateDropdowns();
+      document.getElementById("day").value = '';
+      document.getElementById("year").value = '';
       document.getElementById("output").innerHTML = "";
     };
 
